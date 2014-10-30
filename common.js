@@ -38,8 +38,7 @@ function Processor(parser, handlers){
 	};
 
 	function process (data){
-		var p = new parser.Parser();
-		var result = p.parse(data);
+		var result = parser.parse(data);
 		
 		if (result instanceof waxeye.AST) {
 			// We could indent based on nesting in the result...

@@ -9,7 +9,7 @@ if (typeof module !== 'undefined') {
     waxeye = require('waxeye');
 }
 
-var Parser = (function() {
+var VmParser = (function() {
 
     var parser = function() { return this; };
     parser.prototype = new waxeye.WaxeyeParser(0, true, [new waxeye.FA("program", [new waxeye.State([new waxeye.Edge(1, 0, false),
@@ -216,5 +216,5 @@ var Parser = (function() {
 
 // Add to module system
 if (typeof module !== 'undefined') {
-    module.exports.Parser = Parser;
+    module.exports.VmParser = VmParser;
 }

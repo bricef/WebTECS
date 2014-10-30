@@ -3,7 +3,7 @@
 
 var _ = require('lodash');
 var common = require('./common');
-var parser = require('./parsers/vm')
+var vmparser = require('./parsers/vm_parser')
 
 var Initialisation = [
 	"// StackPointer initialisation",
@@ -115,6 +115,7 @@ var _handlers = {
 	}
 };
 
+var parser = new vmparser.VmParser();
 var processor = new common.Processor(parser, _handlers);
 
 common.make_program(
