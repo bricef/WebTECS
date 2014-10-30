@@ -29,7 +29,7 @@ Index <- Number
 
 Locals <- Number
 
-Number <= +[0-9]
+Number <- +[0-9]
 
 #
 # Voided

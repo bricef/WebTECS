@@ -186,7 +186,7 @@ var Parser = (function() {
         new waxeye.FA("locals", [new waxeye.State([new waxeye.Edge(15, 1, false)], false),
             new waxeye.State([], true)], waxeye.FA.LEFT),
         new waxeye.FA("number", [new waxeye.State([new waxeye.Edge([[48, 57]], 1, false)], false),
-            new waxeye.State([new waxeye.Edge([[48, 57]], 1, false)], true)], waxeye.FA.PRUNE),
+            new waxeye.State([new waxeye.Edge([[48, 57]], 1, false)], true)], waxeye.FA.LEFT),
         new waxeye.FA("comment", [new waxeye.State([new waxeye.Edge(18, 0, false),
                 new waxeye.Edge("/", 1, false)], false),
             new waxeye.State([new waxeye.Edge("/", 2, false)], false),

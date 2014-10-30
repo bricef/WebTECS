@@ -1,33 +1,9 @@
 #!/usr/bin/env node
 
-var fs = require("fs");
-var util = require("util");
-var parser = require('./vm_parser');
-var program = require('commander');
-var waxeye = require('waxeye');
-var _ = require('underscore');
 
-program
-  .version('0.0.1')
-  .option('-i, --input [infile]', 'Input VM language file')
-  .option('-o, --output [outfile]', 'Output HACK language file')
-  .parse(process.argv);
-
-
-var PROG_SUFFIX = (new Date()).getTime().toString();
-
-function FATAL (msg, obj) {
-	console.error("FATAL EXCEPTION: "+msg+"\n"+obj.toString());
-	process.exit(1);
-}
-
-function stringify(AST){
-	return AST.children.join('');
-}
-
-function logAST(AST){
-	console.log(AST.type.toUpperCase()+"["+stringify(AST)+"]");
-}
+var _ = require('lodash');
+var common = require('./common');
+var parser = require('./parsers/vm')
 
 var Initialisation = [
 	"// StackPointer initialisation",
@@ -41,8 +17,8 @@ var Initialisation = [
 
 var EndOfProgram = [
 	"// End of program",
-	"(ENDPROG."+PROG_SUFFIX+")",
-	"@ENDPROG."+PROG_SUFFIX,
+	"(ENDPROG)",
+	"@ENDPROG",
 	"0;JMP"
 ];
 
@@ -98,116 +74,53 @@ var segment = {
 
 }
 
-var handlers = {
-	operator: function(AST){
-		var op = stringify(AST);
+var _handlers = {
+	operator: function(AST, processor){
+		var op = processor.utils.stringify(AST);
 		if(!(op in operators)){
-			FATAL("Operator Not handled: "+op);
+			processor.utils.FATAL("Operator Not handled: "+op);
 		}
 		return operators[op];
 	},
-	function: function(AST){
-		var name = stringify(AST.children[0]);
-		var nLocals = parseInt(stringify(AST.children[1]));
+	function: function(AST, processor){
+		var name = processor.utils.stringify(AST.children[0]);
+		var nLocals = parseInt(processor.utils.stringify(AST.children[1]));
 		return [
 			"// Function "+name+" "+nLocals
 		];
 	},
 
-
-	// WORK HERE
-	push: function(AST){
-		var segment = stringify(AST.children[0]);
-		var chars = []
-		if( 'type' in AST.children[1].children){
-			chars = AST.children[1].children[0]
-		}else{
-			chars = AST.children[1];
-		}
-		var index =  parseInt(stringify(chars));
-		
+	push: function(AST, processor){
+		var segment = processor.utils.stringify(AST.children[0]);
+		var index = parseInt(processor.utils.stringify(AST.children[1].children[0]));
 		return [
 			"// Push "+segment+" "+index,
 			"//..."
 		];
 	},
-	pop: function(AST){
-		var segment = stringify(AST.children[0]);
-		var index = parseInt(stringify(AST.children[1]));
-		
+	pop: function(AST, processor){
+		var segment = processor.utils.stringify(AST.children[0]);
+		var index = parseInt(processor.utils.stringify(AST.children[1].children[0]));
 		return [
 			"// Pop "+segment+" "+index
 		];
 	},
-	return: function(AST){
-		
+	return: function(AST, processor){
 		return [
 			"// return "
 		];
+	},
+	program: function(AST, processor){
+		 return _.flatten([Initialisation, AST.children.map(function(node){ return processor.visit(node); }), EndOfProgram]).join('\n')+"\n";
 	}
 };
 
-function visitor(AST){
-	var commands = [];
-	AST.children.forEach(function(node){
-		if(node.type in handlers){
-			commands.push(handlers[node.type](node));
-		}else if(node instanceof waxeye.AST){
-			commands.push(visitor(node));
-		}else{
-			// bail out because we don't know what the hell we're dealing with
-			FATAL("Could not deal with node: ", node);
-		}
-	});
-	return commands;
-}
+var processor = new common.Processor(parser, _handlers);
 
-function parse_file(data){
-	var p = new parser.VmParser();
-	var result = p.parse(data);
-
-	if (result instanceof waxeye.AST) {
-		// We could indent based on nesting in the result...
-		return _.flatten([Initialisation, visitor(result), EndOfProgram]).join('\n')+"\n";
-	}else {
-		if (result instanceof waxeye.ParseError) {
-			FATAL("Parse error occured: ", result);
-		}
-		else {
-			FATAL("Null or empty file");
-		}
+common.make_program(
+	processor,
+	{
+		input_format: "Hack VM bytcode",
+		output_format: "HACK assembly"
 	}
-	return ""
-}
-
-
-function main(){
-	var input,output;
-
-	if(program.input){
-		input = fs.createReadStream(program.input);
-	}else{
-		input = process.stdin;
-	}
-
-
-	if(program.output){
-		output = fs.createWriteStream(program.output);
-	}else{
-		output = process.stdout;
-	}
-
-	input.resume();
-	input.setEncoding('utf8');
-
-	var data = '';
-	input.on('data', function(buf){
-		data += buf;
-	});
-	input.on('end', function(){
-		output.write(parse_file(data));
-	});
-
-}
-
-main();
+);
